@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { useAuth } from '../auth/AuthContext'
 import { useDialog } from '../context/DialogContext'
 import { createEmployee, updateEmployee, softDeleteEmployee } from '../services/employees'
+import { exportEmployeesToExcel, parseEmployeesExcel } from '../services/employeesExcel'
 import { daysInMonth, monthLabel, AR_DAYS, weekdayOf } from '../utils/dates'
 import type { Employee } from '../types/domain'
 
@@ -14,22 +15,36 @@ function countShifts(shifts: Record<number, string> | undefined) {
   return counts
 }
 
+/** Returns the set of values that appear on more than one employee for the given field. */
+function findDuplicateValues(employees: Employee[], field: 'workNumber' | 'groupName'): Set<string> {
+  const counts = new Map<string, number>()
+  employees.forEach((e) => {
+    const v = e[field]?.trim()
+    if (v) counts.set(v, (counts.get(v) || 0) + 1)
+  })
+  return new Set([...counts.entries()].filter(([, n]) => n > 1).map(([v]) => v))
+}
+
 export default function Profiles() {
   const { user } = useAuth()
   const { employees, shiftTypes, jobRoles, currentMonth, roster, reloadEmployees } = useAppData()
-  const { confirm } = useDialog()
+  const { confirm, alert } = useDialog()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<Partial<Employee>>({})
   const [exportFrom, setExportFrom] = useState(1)
   const [exportTo, setExportTo] = useState(31)
   const [exportPreset, setExportPreset] = useState('full')
+  const excelInputRef = useRef<HTMLInputElement>(null)
 
   const canManage = user?.role === 'admin'
   const shiftByCode = new Map(shiftTypes.map((s) => [s.code, s]))
   const year = currentMonth?.year ?? new Date().getFullYear()
   const month = currentMonth?.month ?? new Date().getMonth() + 1
   const nd = daysInMonth(year, month)
+
+  const dupWorkNumbers = useMemo(() => findDuplicateValues(employees, 'workNumber'), [employees])
+  const dupGroupNames = useMemo(() => findDuplicateValues(employees, 'groupName'), [employees])
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -66,6 +81,55 @@ export default function Profiles() {
     await reloadEmployees()
   }
 
+  async function handleExportExcel() {
+    await exportEmployeesToExcel(employees)
+  }
+
+  async function handleImportExcel(file: File) {
+    if (!user) return
+    let rows
+    try {
+      rows = await parseEmployeesExcel(file)
+    } catch {
+      await alert('تعذّر قراءة ملف الإكسل — تأكد إنه بنفس تنسيق نموذج التصدير.')
+      return
+    }
+    if (rows.length === 0) {
+      await alert('الملف فاضي أو مفيهوش صفوف صالحة.')
+      return
+    }
+
+    const byWorkNumber = new Map(employees.filter((e) => e.workNumber?.trim()).map((e) => [e.workNumber!.trim(), e]))
+    const byName = new Map(employees.map((e) => [e.name.trim(), e]))
+    let updateCount = 0
+    let createCount = 0
+    rows.forEach((row) => {
+      const match = (row.workNumber && byWorkNumber.get(row.workNumber)) || byName.get(row.name.trim())
+      if (match) updateCount++
+      else createCount++
+    })
+
+    const ok = await confirm(`هيتم تحديث ${updateCount} موظف وإضافة ${createCount} موظف جديد. تأكيد المتابعة؟`)
+    if (!ok) return
+
+    for (const row of rows) {
+      const match = (row.workNumber && byWorkNumber.get(row.workNumber)) || byName.get(row.name.trim())
+      const patch: Partial<Employee> & { name: string } = {
+        name: row.name,
+        jobRole: row.jobRole,
+        level: row.level,
+        nationalId: row.nationalId,
+        workNumber: row.workNumber,
+        groupName: row.groupName,
+        fixedRestDay: row.fixedRestDay,
+      }
+      if (match) await updateEmployee(match.id, patch, user)
+      else await createEmployee(patch, user)
+    }
+    await reloadEmployees()
+    await alert('تم استيراد بيانات الموظفين بنجاح.')
+  }
+
   function applyExportPreset(preset: string) {
     setExportPreset(preset)
     const ranges: Record<string, [number, number]> = {
@@ -89,7 +153,24 @@ export default function Profiles() {
           <div className="row">
             <button className="btn ghost" onClick={() => setSelected(new Set(employees.map((e) => e.id)))}>تحديد الكل</button>
             <button className="btn ghost" onClick={() => setSelected(new Set())}>إلغاء التحديد</button>
-            {canManage && <button className="btn secondary" onClick={handleAdd}>+ إضافة موظف جديد</button>}
+            {canManage && (
+              <>
+                <button className="btn ghost" onClick={handleExportExcel}>⬇️ تصدير Excel</button>
+                <button className="btn ghost" onClick={() => excelInputRef.current?.click()}>⬆️ استيراد Excel</button>
+                <input
+                  ref={excelInputRef}
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleImportExcel(file)
+                    e.target.value = ''
+                  }}
+                />
+                <button className="btn secondary" onClick={handleAdd}>+ إضافة موظف جديد</button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -150,11 +231,25 @@ export default function Profiles() {
 
           const counts = countShifts(roster[emp.id])
           const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
+          const isDupWork = Boolean(emp.workNumber?.trim() && dupWorkNumbers.has(emp.workNumber.trim()))
+          const isDupGroup = Boolean(emp.groupName?.trim() && dupGroupNames.has(emp.groupName.trim()))
           return (
             <div className={`card ${selected.has(emp.id) ? 'selected' : ''}`} key={emp.id}>
               <label className="pick">
                 <input type="checkbox" checked={selected.has(emp.id)} onChange={() => toggleSelect(emp.id)} />
               </label>
+              {(isDupWork || isDupGroup) && (
+                <span
+                  className="chip"
+                  style={{ background: '#fbe7ea', color: 'var(--danger)', marginBottom: 6 }}
+                  title={[
+                    isDupWork ? 'رقم الشغل ده مستخدم مع موظف/موظفين تانيين' : '',
+                    isDupGroup ? 'اسم الجروب/الواتساب ده مشترك مع موظف/موظفين تانيين' : '',
+                  ].filter(Boolean).join(' — ')}
+                >
+                  ⚠️ {isDupWork && isDupGroup ? 'رقم وجروب مكررين' : isDupWork ? 'رقم شغل مكرر' : 'جروب مشترك'}
+                </span>
+              )}
               <h3>{emp.name}</h3>
               <div className="role">{emp.jobRole || 'بدون دور محدد'}{emp.groupName ? ` • ${emp.groupName}` : ''}</div>
               <div className="level">{'★'.repeat(emp.level || 3)}{'☆'.repeat(5 - (emp.level || 3))}</div>
