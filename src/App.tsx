@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import { AppDataProvider } from './context/AppDataContext'
 import { DialogProvider } from './context/DialogContext'
@@ -13,6 +13,7 @@ import Generate from './pages/Generate'
 import Rules from './pages/Rules'
 import AuditLog from './pages/AuditLog'
 import Accounts from './pages/Accounts'
+import MyProfile from './pages/MyProfile'
 
 function App() {
   const { loading, user } = useAuth()
@@ -25,7 +26,7 @@ function App() {
       <AppDataProvider>
         <Routes>
           <Route element={<Layout />}>
-            <Route index element={<Dashboard />} />
+            <Route index element={user.role === 'supervisor' ? <Navigate to="/grid" replace /> : <Dashboard />} />
             <Route path="grid" element={<Grid />} />
             <Route path="coverage" element={<Coverage />} />
             <Route path="profiles" element={<Profiles />} />
@@ -34,6 +35,7 @@ function App() {
             <Route path="rules" element={<Rules />} />
             <Route path="audit-log" element={<AuditLog />} />
             <Route path="accounts" element={<Accounts />} />
+            <Route path="my-profile" element={<MyProfile />} />
           </Route>
         </Routes>
       </AppDataProvider>

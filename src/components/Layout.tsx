@@ -4,18 +4,22 @@ import { useAppData } from '../context/AppDataContext'
 import { monthLabel } from '../utils/dates'
 import type { Role } from '../types/domain'
 
-const TABS = [
-  { to: '/', label: 'الرئيسية' },
-  { to: '/grid', label: 'الجدول العام' },
-  { to: '/coverage', label: 'التغطية اليومية' },
-  { to: '/profiles', label: 'الفريق والملفات' },
-  { to: '/filter', label: 'فلترة بشيفت' },
-  { to: '/generate', label: 'توليد شهر جديد' },
-  { to: '/rules', label: 'القواعد' },
-  { to: '/audit-log', label: 'سجل التعديلات' },
-]
+const DASHBOARD = { to: '/', label: 'الرئيسية' }
+const GRID = { to: '/grid', label: 'الجدول العام' }
+const COVERAGE = { to: '/coverage', label: 'التغطية اليومية' }
+const PROFILES = { to: '/profiles', label: 'الفريق والملفات' }
+const FILTER = { to: '/filter', label: 'فلترة بشيفت' }
+const GENERATE = { to: '/generate', label: 'توليد شهر جديد' }
+const RULES = { to: '/rules', label: 'القواعد' }
+const AUDIT_LOG = { to: '/audit-log', label: 'سجل التعديلات' }
+const ACCOUNTS = { to: '/accounts', label: 'الحسابات' }
 
-const ADMIN_TAB = { to: '/accounts', label: 'الحسابات' }
+const TABS_BY_ROLE: Record<Role, { to: string; label: string }[]> = {
+  admin: [DASHBOARD, GRID, COVERAGE, PROFILES, FILTER, GENERATE, RULES, AUDIT_LOG, ACCOUNTS],
+  shift_manager: [DASHBOARD, GRID, COVERAGE],
+  supervisor: [GRID, COVERAGE],
+  view_only: [DASHBOARD, GRID, COVERAGE, PROFILES, FILTER, AUDIT_LOG],
+}
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'مدير عام',
@@ -29,6 +33,7 @@ const STATUS_LABELS = { draft: 'مسودة', published: 'منشور', locked: '�
 export default function Layout() {
   const { user, isDevMode, signOut, setDevRole } = useAuth()
   const { months, currentMonth, setCurrentMonthId } = useAppData()
+  const tabs = TABS_BY_ROLE[user?.role ?? 'view_only']
 
   return (
     <>
@@ -64,6 +69,11 @@ export default function Layout() {
               ))}
             </select>
           )}
+          {user?.role === 'supervisor' && (
+            <NavLink to="/my-profile" className="icon-btn" title="ملفي الشخصي">
+              👤
+            </NavLink>
+          )}
           {!isDevMode && (
             <button className="icon-btn" onClick={signOut} title="تسجيل الخروج">
               ⏻
@@ -73,7 +83,7 @@ export default function Layout() {
       </header>
 
       <nav className="tabs no-print">
-        {[...TABS, ...(user?.role === 'admin' ? [ADMIN_TAB] : [])].map((tab) => (
+        {tabs.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
