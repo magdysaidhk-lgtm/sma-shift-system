@@ -1,5 +1,9 @@
 import { Routes, Route } from 'react-router-dom'
+import { useAuth } from './auth/AuthContext'
+import { AppDataProvider } from './context/AppDataContext'
+import { DialogProvider } from './context/DialogContext'
 import Layout from './components/Layout'
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Grid from './pages/Grid'
 import Coverage from './pages/Coverage'
@@ -10,19 +14,28 @@ import Rules from './pages/Rules'
 import AuditLog from './pages/AuditLog'
 
 function App() {
+  const { loading, user } = useAuth()
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>جارٍ التحميل...</div>
+  if (!user) return <Login />
+
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="grid" element={<Grid />} />
-        <Route path="coverage" element={<Coverage />} />
-        <Route path="profiles" element={<Profiles />} />
-        <Route path="filter" element={<FilterByShift />} />
-        <Route path="generate" element={<Generate />} />
-        <Route path="rules" element={<Rules />} />
-        <Route path="audit-log" element={<AuditLog />} />
-      </Route>
-    </Routes>
+    <DialogProvider>
+      <AppDataProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="grid" element={<Grid />} />
+            <Route path="coverage" element={<Coverage />} />
+            <Route path="profiles" element={<Profiles />} />
+            <Route path="filter" element={<FilterByShift />} />
+            <Route path="generate" element={<Generate />} />
+            <Route path="rules" element={<Rules />} />
+            <Route path="audit-log" element={<AuditLog />} />
+          </Route>
+        </Routes>
+      </AppDataProvider>
+    </DialogProvider>
   )
 }
 

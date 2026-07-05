@@ -71,7 +71,7 @@ main{padding:20px 22px 70px; max-width:1380px; margin:0 auto;}
 .panel-title .bar{width:4px; height:15px; background:var(--primary-2); border-radius:3px; display:inline-block;}
 
 .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-select, input[type=text], input[type=number], input[type=time], input[type=date]{
+select, input[type=text], input[type=number], input[type=time], input[type=date], input[type=password]{
   padding:8px 11px; border:1px solid var(--line); border-radius:9px; font-size:13px;
   background:#fff; color:var(--ink); font-family:inherit; transition:.15s;
 }
