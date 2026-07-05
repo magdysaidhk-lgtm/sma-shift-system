@@ -41,3 +41,12 @@
   2. `supabase functions deploy daily-backup`
   3. من لوحة Edge Functions، فعّل Schedule بـ cron مثل `0 2 * * *` (٢ص يوميًا).
   - المتغيرات `SUPABASE_URL` و`SUPABASE_SERVICE_ROLE_KEY` متاحة تلقائيًا داخل بيئة الـ Edge Function — لا تحتاج ضبط يدوي.
+
+## صفحة "الحسابات" (إضافة مستخدمين جدد من داخل النظام)
+تحتاج نشر Edge Function واحدة: `functions/invite-user/index.ts`. بما إنه مفيش Supabase CLI مثبت محليًا، أسهل طريقة نشر:
+1. من لوحة Supabase: **Edge Functions** → **Deploy a new function**.
+2. اسم الفنكشن: `invite-user` بالظبط (لازم يطابق الاسم ده عشان الواجهة بتناديه بالاسم ده).
+3. الصق محتوى `functions/invite-user/index.ts` كامل في المحرر واحفظ/انشر.
+4. المتغيرات `SUPABASE_URL` و`SUPABASE_ANON_KEY` و`SUPABASE_SERVICE_ROLE_KEY` متاحة تلقائيًا — لا حاجة لإعداد يدوي.
+
+**ملاحظة عن إرسال الإيميل**: خيار "دعوة بالبريد" يعتمد على خدمة الإيميل المدمجة في Supabase، ومحدودة على الباقة المجانية (Rate Limit صارم، وممكن تتأخر أو توصل Spam). لو الدعوة مانوصلتش، استخدم خيار "إنشاء بكلمة مرور مباشرة" في صفحة الحسابات كبديل فوري بدون إيميل، وابعت الباسورد للشخص يدويًا. لضبط إيميل حقيقي لاحقًا: Authentication → Email → SMTP Settings.

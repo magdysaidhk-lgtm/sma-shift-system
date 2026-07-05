@@ -15,6 +15,8 @@ const TABS = [
   { to: '/audit-log', label: 'سجل التعديلات' },
 ]
 
+const ADMIN_TAB = { to: '/accounts', label: 'الحسابات' }
+
 const ROLE_LABELS: Record<Role, string> = {
   admin: 'مدير عام',
   shift_manager: 'مدير شيفت',
@@ -71,7 +73,7 @@ export default function Layout() {
       </header>
 
       <nav className="tabs no-print">
-        {TABS.map((tab) => (
+        {[...TABS, ...(user?.role === 'admin' ? [ADMIN_TAB] : [])].map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}

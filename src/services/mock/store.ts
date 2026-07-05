@@ -1,4 +1,4 @@
-import type { Employee, ShiftType, Month, Settings, ChangeRequest, AuditLogEntry } from '../../types/domain'
+import type { Employee, ShiftType, Month, Settings, ChangeRequest, AuditLogEntry, UserProfile } from '../../types/domain'
 import { SEED_SHIFT_TYPES, SEED_SETTINGS, SEED_FEB_2026, SEED_JOB_ROLES, seedEmployees } from './seed'
 
 export interface ShiftAssignmentRow {
@@ -18,6 +18,7 @@ export interface MockDB {
   settings: Settings
   changeRequests: ChangeRequest[]
   auditLog: AuditLogEntry[]
+  accounts: UserProfile[]
 }
 
 const STORAGE_KEY = 'sma_v2_mock_db'
@@ -44,6 +45,7 @@ function buildInitialState(): MockDB {
     settings: { ...SEED_SETTINGS },
     changeRequests: [],
     auditLog: [],
+    accounts: [],
   }
 }
 
@@ -53,6 +55,7 @@ function load(): MockDB {
     if (raw) {
       const parsed = JSON.parse(raw) as MockDB
       if (!parsed.jobRoles) parsed.jobRoles = [...SEED_JOB_ROLES]
+      if (!parsed.accounts) parsed.accounts = []
       return parsed
     }
   } catch {

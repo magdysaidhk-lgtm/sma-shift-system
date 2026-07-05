@@ -12,6 +12,7 @@ import FilterByShift from './pages/FilterByShift'
 import Generate from './pages/Generate'
 import Rules from './pages/Rules'
 import AuditLog from './pages/AuditLog'
+import Accounts from './pages/Accounts'
 
 function App() {
   const { loading, user } = useAuth()
@@ -32,6 +33,7 @@ function App() {
             <Route path="generate" element={<Generate />} />
             <Route path="rules" element={<Rules />} />
             <Route path="audit-log" element={<AuditLog />} />
+            <Route path="accounts" element={<Accounts />} />
           </Route>
         </Routes>
       </AppDataProvider>
