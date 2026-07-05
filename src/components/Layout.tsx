@@ -90,6 +90,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Target for ExportPortal — must stay OUTSIDE #appView, see ExportPortal.tsx */}
+      <div id="exportView"></div>
     </>
   )
 }

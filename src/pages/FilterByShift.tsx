@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
+import ExportPortal from '../components/ExportPortal'
 import { AR_DAYS, daysInMonth, monthLabel, weekdayOf } from '../utils/dates'
 
 type Preset = 'month' | 'week' | 'custom'
@@ -116,6 +117,32 @@ export default function FilterByShift() {
           )}
         </div>
       </div>
+
+      {/* Print-only export view — .filter-days content doesn't print cleanly, so build a table instead. */}
+      {matches.length > 0 && (
+        <ExportPortal>
+          <div className="export-page">
+            <div className="export-head">
+              <h2>الأشخاص في شيفت "{activeCode}" — {s?.description}</h2>
+              <div className="muted">سوبر مسلم أكاديمي</div>
+            </div>
+            <div className="muted">{currentMonth ? monthLabel(currentMonth.year, currentMonth.month) : ''}{rangeLabel} — {matches.length} شخص</div>
+            <table className="export-table" style={{ marginTop: 10 }}>
+              <thead><tr><th>الاسم</th><th>الدور</th><th>عدد الأيام</th><th>الأيام</th></tr></thead>
+              <tbody>
+                {matches.map(({ emp, days }) => (
+                  <tr key={emp.id}>
+                    <td>{emp.name}</td>
+                    <td>{emp.jobRole || ''}</td>
+                    <td>{days.length}</td>
+                    <td>{days.join('، ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ExportPortal>
+      )}
     </section>
   )
 }

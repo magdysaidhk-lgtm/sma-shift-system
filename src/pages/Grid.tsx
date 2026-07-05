@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useDialog } from '../context/DialogContext'
 import { setAssignment } from '../services/shiftAssignments'
 import CellEditModal from '../components/CellEditModal'
+import ExportPortal from '../components/ExportPortal'
 import { AR_DAYS, AR_DAYS_SHORT, daysInMonth, monthLabel, weekdayOf } from '../utils/dates'
 
 type GridPreset = 'today' | 'week' | 'month' | 'custom'
@@ -39,6 +40,7 @@ export default function Grid() {
   const [sickType, setSickType] = useState<'Y' | 'ABS'>('Y')
   const [sickDate, setSickDate] = useState(1)
   const [modalCtx, setModalCtx] = useState<{ employeeId: string; day: number } | null>(null)
+  const [printMessage, setPrintMessage] = useState('')
 
   const year = currentMonth?.year ?? new Date().getFullYear()
   const month = currentMonth?.month ?? new Date().getMonth() + 1
@@ -93,7 +95,16 @@ export default function Grid() {
             </div>
             <div className="muted">اضغط على أي خانة لتسجيل شيفت أو إجازة أو غياب ليوم بعينه</div>
           </div>
-          <button className="btn secondary" onClick={() => window.print()}>🖨️ طباعة / PDF</button>
+          <div className="row" style={{ alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="رسالة تُطبع أعلى الجدول (اختياري)"
+              value={printMessage}
+              onChange={(e) => setPrintMessage(e.target.value)}
+              style={{ minWidth: 220 }}
+            />
+            <button className="btn secondary" onClick={() => window.print()}>🖨️ طباعة / PDF</button>
+          </div>
         </div>
 
         <div className="toolbar-block">
@@ -233,6 +244,55 @@ export default function Grid() {
         onSelect={handleSelect}
         onClose={() => setModalCtx(null)}
       />
+
+      {/* Print-only export view — a clean paginated table instead of printing the interactive grid. */}
+      <ExportPortal>
+        <div className="export-page">
+          <div className="export-head">
+            <div>
+              <h2>{monthLabel(year, month)}</h2>
+              <div className="muted">الجدول العام{(from !== 1 || to !== nd) ? ` — من ${from} إلى ${to}` : ''}</div>
+            </div>
+            <div className="muted">سوبر مسلم أكاديمي</div>
+          </div>
+          {printMessage && (
+            <p style={{ background: '#f6f8fb', border: '1px solid #e6e9f0', borderRadius: 8, padding: '8px 12px', fontSize: 13 }}>
+              {printMessage}
+            </p>
+          )}
+          <table className="export-table" style={{ fontSize: 11 }}>
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>الدور</th>
+                {days.map((d) => <th key={d}>{d}<br />{AR_DAYS_SHORT[weekdayOf(year, month, d)]}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {employees.map((emp) => (
+                <tr key={emp.id}>
+                  <td style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{emp.name}</td>
+                  <td>{emp.jobRole || ''}</td>
+                  {days.map((d) => {
+                    const code = roster[emp.id]?.[d]
+                    const s = code ? shiftByCode.get(code) : undefined
+                    return (
+                      <td key={d} style={{ textAlign: 'center', background: s?.color, color: s?.textColor, fontWeight: 700 }}>
+                        {code || '–'}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="export-summary">
+            {shiftTypes.map((s) => (
+              <span className="item" key={s.code}>{s.code} = {s.description}</span>
+            ))}
+          </div>
+        </div>
+      </ExportPortal>
     </section>
   )
 }

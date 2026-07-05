@@ -4,6 +4,8 @@ import { useAuth } from '../auth/AuthContext'
 import { useDialog } from '../context/DialogContext'
 import { createEmployee, updateEmployee, softDeleteEmployee } from '../services/employees'
 import { exportEmployeesToExcel, parseEmployeesExcel } from '../services/employeesExcel'
+import { summarizeShifts } from '../utils/exportView'
+import ExportPortal from '../components/ExportPortal'
 import { daysInMonth, monthLabel, AR_DAYS, weekdayOf } from '../utils/dates'
 import type { Employee } from '../types/domain'
 
@@ -35,6 +37,7 @@ export default function Profiles() {
   const [exportFrom, setExportFrom] = useState(1)
   const [exportTo, setExportTo] = useState(31)
   const [exportPreset, setExportPreset] = useState('full')
+  const [exportMessage, setExportMessage] = useState('')
   const excelInputRef = useRef<HTMLInputElement>(null)
 
   const canManage = user?.role === 'admin'
@@ -284,9 +287,9 @@ export default function Profiles() {
         })}
       </div>
 
-      <div className="toolbar-sticky no-print">
+      <div className="toolbar-sticky no-print" style={{ flexWrap: 'wrap' }}>
         <span className="muted">{selected.size} شخص محدد</span>
-        <div className="row">
+        <div className="row" style={{ flexWrap: 'wrap' }}>
           <div className="field">
             <label>المدة</label>
             <select value={exportPreset} onChange={(e) => applyExportPreset(e.target.value)}>
@@ -306,6 +309,10 @@ export default function Profiles() {
             <label>إلى يوم</label>
             <input type="number" min={1} max={nd} value={exportTo} onChange={(e) => setExportTo(Number(e.target.value))} />
           </div>
+          <div className="field" style={{ minWidth: 220 }}>
+            <label>رسالة تُطبع أعلى الصفحة (اختياري)</label>
+            <input type="text" value={exportMessage} onChange={(e) => setExportMessage(e.target.value)} placeholder="مثال: جدول شهر مارس — راجع أيام راحتك" />
+          </div>
           <button className="btn secondary" onClick={exportSelected} disabled={selected.size === 0}>
             📄 تصدير / طباعة المحدد
           </button>
@@ -313,16 +320,14 @@ export default function Profiles() {
       </div>
 
       {/* Print-only export view */}
-      <div id="exportView">
+      <ExportPortal>
         {[...selected].map((id) => {
           const emp = employees.find((e) => e.id === id)
           if (!emp) return null
           const shifts = roster[id] ?? {}
-          const counts: Record<string, number> = {}
           const rows: ReactNode[] = []
           for (let d = exportFrom; d <= exportTo; d++) {
             const code = shifts[d]
-            if (code) counts[code] = (counts[code] || 0) + 1
             const s = code ? shiftByCode.get(code) : undefined
             rows.push(
               <tr key={d}>
@@ -333,6 +338,7 @@ export default function Profiles() {
               </tr>,
             )
           }
+          const { workCounts, leaveCounts } = summarizeShifts(shifts, shiftTypes)
           return (
             <div className="export-page" key={id}>
               <div className="export-head">
@@ -345,19 +351,32 @@ export default function Profiles() {
                   <div className="muted">سوبر مسلم أكاديمي</div>
                 </div>
               </div>
+              {exportMessage && (
+                <p style={{ background: '#f6f8fb', border: '1px solid #e6e9f0', borderRadius: 8, padding: '8px 12px', fontSize: 13 }}>
+                  {exportMessage}
+                </p>
+              )}
               <table className="export-table">
                 <thead><tr><th>التاريخ</th><th>اليوم</th><th>الشيفت</th><th>التوقيت</th></tr></thead>
                 <tbody>{rows}</tbody>
               </table>
-              <div className="export-summary">
-                {Object.entries(counts).map(([code, n]) => (
-                  <span className="item" key={code}>{code}: {n} يوم</span>
+              <div style={{ marginTop: 12, fontSize: 12.5 }}>
+                <b>أيام العمل:</b>{' '}
+                {workCounts.length === 0 ? 'لا يوجد' : workCounts.map(([code, n]) => `${code}: ${n} يوم`).join(' — ')}
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12.5 }}>
+                <b>أيام الإجازة/الراحة:</b>{' '}
+                {leaveCounts.length === 0 ? 'لا يوجد' : leaveCounts.map(([code, n]) => `${code}: ${n} يوم`).join(' — ')}
+              </div>
+              <div className="export-summary" style={{ marginTop: 10 }}>
+                {shiftTypes.map((s) => (
+                  <span className="item" key={s.code}>{s.code} = {s.description}</span>
                 ))}
               </div>
             </div>
           )
         })}
-      </div>
+      </ExportPortal>
     </section>
   )
 }
