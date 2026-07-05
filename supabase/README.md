@@ -33,3 +33,11 @@
 | audit_log | قراءة فقط (لا كتابة لحد) | قراءة فقط | لا يرى | قراءة فقط |
 
 كل هذا مفروض فعليًا من جهة قاعدة البيانات (Row Level Security)، مش مجرد إخفاء أزرار في الواجهة.
+
+## النسخ الاحتياطي
+- **يدوي**: من صفحة "القواعد" (Admin فقط) — زر تصدير (تنزيل JSON) وزر استيراد (يستبدل البيانات الحالية بعد تأكيد).
+- **تلقائي يومي**: `functions/daily-backup/index.ts` — Edge Function تجمع كل الجداول وترفعها كملف JSON في Storage bucket اسمه `backups`. خطوات التفعيل وقت توفر الحساب:
+  1. أنشئ Storage bucket اسمه `backups` (Private) من لوحة Supabase.
+  2. `supabase functions deploy daily-backup`
+  3. من لوحة Edge Functions، فعّل Schedule بـ cron مثل `0 2 * * *` (٢ص يوميًا).
+  - المتغيرات `SUPABASE_URL` و`SUPABASE_SERVICE_ROLE_KEY` متاحة تلقائيًا داخل بيئة الـ Edge Function — لا تحتاج ضبط يدوي.

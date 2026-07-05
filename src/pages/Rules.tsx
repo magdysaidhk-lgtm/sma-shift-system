@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { useAuth } from '../auth/AuthContext'
 import { useDialog } from '../context/DialogContext'
 import { upsertShiftType, deleteShiftType } from '../services/shiftTypes'
 import { updateSettings } from '../services/settingsService'
+import { exportBackup, downloadBackup, importBackup, type BackupPayload } from '../services/backup'
 import { AR_DAYS, pad2 } from '../utils/dates'
 import type { ShiftType } from '../types/domain'
 
@@ -13,9 +14,10 @@ function timeVal(h: number | null) {
 
 export default function Rules() {
   const { user } = useAuth()
-  const { shiftTypes, settings, reloadShiftTypes, reloadSettings } = useAppData()
-  const { alert } = useDialog()
+  const { shiftTypes, settings, reloadShiftTypes, reloadSettings, reloadEmployees, reloadMonths } = useAppData()
+  const { alert, confirm } = useDialog()
   const isAdmin = user?.role === 'admin'
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [newCode, setNewCode] = useState('')
   const [newFrom, setNewFrom] = useState('')
@@ -25,6 +27,25 @@ export default function Rules() {
   const [restDays, setRestDays] = useState<Set<number>>(new Set(settings.allowedRestDays))
   const [peakFrom, setPeakFrom] = useState(timeVal(settings.peakStartH))
   const [peakTo, setPeakTo] = useState(timeVal(settings.peakEndH))
+
+  async function handleExport() {
+    const payload = await exportBackup()
+    downloadBackup(payload)
+  }
+
+  async function handleImportFile(file: File) {
+    const ok = await confirm('استيراد نسخة احتياطية هيستبدل كل بيانات الموظفين والشهور والشيفتات الحالية. تأكيد المتابعة؟')
+    if (!ok) return
+    try {
+      const text = await file.text()
+      const payload = JSON.parse(text) as BackupPayload
+      await importBackup(payload)
+      await Promise.all([reloadEmployees(), reloadShiftTypes(), reloadSettings(), reloadMonths()])
+      await alert('تم استيراد النسخة الاحتياطية بنجاح.')
+    } catch {
+      await alert('تعذّر قراءة الملف — تأكد إنه ملف نسخة احتياطية صحيح من نفس النظام.')
+    }
+  }
 
   async function editField(code: string, patch: Partial<ShiftType>) {
     const s = shiftTypes.find((st) => st.code === code)
@@ -168,6 +189,28 @@ export default function Rules() {
           <li>N7 لا يُستخدم تلقائيًا في التوليد حتى يتأكد توقيته — متاح فقط للتعيين اليدوي في الجدول.</li>
         </ul>
       </div>
+
+      {isAdmin && (
+        <div className="panel">
+          <div className="panel-title"><span className="bar"></span>النسخ الاحتياطي</div>
+          <div className="muted">تصدير نسخة كاملة (JSON) من الموظفين والشهور والشيفتات والإعدادات، أو استيراد نسخة سابقة.</div>
+          <div className="row" style={{ marginTop: 10 }}>
+            <button className="btn secondary" onClick={handleExport}>⬇️ تصدير نسخة احتياطية</button>
+            <button className="btn ghost" onClick={() => fileInputRef.current?.click()}>⬆️ استيراد نسخة احتياطية</button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleImportFile(file)
+                e.target.value = ''
+              }}
+            />
+          </div>
+        </div>
+      )}
     </section>
   )
 }
