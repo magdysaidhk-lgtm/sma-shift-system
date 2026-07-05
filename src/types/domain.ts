@@ -17,6 +17,7 @@ export interface Employee {
   id: string
   name: string
   jobRole: string | null
+  groupName: string | null
   status: 'active' | 'paused' | 'on_leave'
   nationalId: string | null
   workNumber: string | null

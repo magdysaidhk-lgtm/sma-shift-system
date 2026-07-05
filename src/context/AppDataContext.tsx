@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { Employee, Month, Settings, ShiftType } from '../types/domain'
 import { listEmployees } from '../services/employees'
 import { listShiftTypes } from '../services/shiftTypes'
+import { listJobRoles } from '../services/jobRoles'
 import { getSettings } from '../services/settingsService'
 import { listMonths, createMonth, getMonth } from '../services/months'
 import { listAssignmentsForMonth, type RosterMap } from '../services/shiftAssignments'
@@ -12,6 +13,7 @@ interface AppDataState {
   loading: boolean
   employees: Employee[]
   shiftTypes: ShiftType[]
+  jobRoles: string[]
   settings: Settings
   months: Month[]
   currentMonth: Month | null
@@ -21,6 +23,7 @@ interface AppDataState {
   reloadMonths: () => Promise<void>
   reloadEmployees: () => Promise<void>
   reloadShiftTypes: () => Promise<void>
+  reloadJobRoles: () => Promise<void>
   reloadSettings: () => Promise<void>
 }
 
@@ -33,6 +36,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [employees, setEmployees] = useState<Employee[]>([])
   const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([])
+  const [jobRoles, setJobRoles] = useState<string[]>([])
   const [settings, setSettings] = useState<Settings>(EMPTY_SETTINGS)
   const [months, setMonths] = useState<Month[]>([])
   const [currentMonthId, setCurrentMonthId] = useState<string | null>(null)
@@ -40,6 +44,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const reloadEmployees = useCallback(async () => setEmployees(await listEmployees()), [])
   const reloadShiftTypes = useCallback(async () => setShiftTypes(await listShiftTypes()), [])
+  const reloadJobRoles = useCallback(async () => setJobRoles(await listJobRoles()), [])
   const reloadSettings = useCallback(async () => setSettings(await getSettings()), [])
 
   const reloadMonths = useCallback(async () => {
@@ -63,7 +68,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     ;(async () => {
       setLoading(true)
-      await Promise.all([reloadEmployees(), reloadShiftTypes(), reloadSettings()])
+      await Promise.all([reloadEmployees(), reloadShiftTypes(), reloadJobRoles(), reloadSettings()])
       let list = await reloadMonths()
 
       const { year, month } = realTodayKey()
@@ -96,6 +101,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         loading,
         employees,
         shiftTypes,
+        jobRoles,
         settings,
         months,
         currentMonth,
@@ -107,6 +113,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         },
         reloadEmployees,
         reloadShiftTypes,
+        reloadJobRoles,
         reloadSettings,
       }}
     >

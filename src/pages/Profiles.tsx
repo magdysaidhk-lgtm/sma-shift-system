@@ -6,8 +6,6 @@ import { createEmployee, updateEmployee, softDeleteEmployee } from '../services/
 import { daysInMonth, monthLabel, AR_DAYS, weekdayOf } from '../utils/dates'
 import type { Employee } from '../types/domain'
 
-const ROLE_OPTIONS = ['م . شيفت', 'اشراف', 'تدريب', '']
-
 function countShifts(shifts: Record<number, string> | undefined) {
   const counts: Record<string, number> = {}
   Object.values(shifts ?? {}).forEach((c) => {
@@ -18,7 +16,7 @@ function countShifts(shifts: Record<number, string> | undefined) {
 
 export default function Profiles() {
   const { user } = useAuth()
-  const { employees, shiftTypes, currentMonth, roster, reloadEmployees } = useAppData()
+  const { employees, shiftTypes, jobRoles, currentMonth, roster, reloadEmployees } = useAppData()
   const { confirm } = useDialog()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -108,8 +106,13 @@ export default function Profiles() {
                 <div className="field" style={{ marginBottom: 8 }}>
                   <label>الدور</label>
                   <select value={draft.jobRole ?? ''} onChange={(e) => setDraft((d) => ({ ...d, jobRole: e.target.value }))}>
-                    {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r || 'بدون'}</option>)}
+                    <option value="">بدون</option>
+                    {jobRoles.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
+                </div>
+                <div className="field" style={{ marginBottom: 8 }}>
+                  <label>اسم الجروب / الواتساب</label>
+                  <input type="text" value={draft.groupName ?? ''} onChange={(e) => setDraft((d) => ({ ...d, groupName: e.target.value }))} />
                 </div>
                 <div className="field" style={{ marginBottom: 8 }}>
                   <label>رقم الشخصي</label>
@@ -118,6 +121,16 @@ export default function Profiles() {
                 <div className="field" style={{ marginBottom: 8 }}>
                   <label>رقم الشغل</label>
                   <input type="text" value={draft.workNumber ?? ''} onChange={(e) => setDraft((d) => ({ ...d, workNumber: e.target.value }))} />
+                </div>
+                <div className="field" style={{ marginBottom: 8 }}>
+                  <label>يوم الإجازة الثابت</label>
+                  <select
+                    value={draft.fixedRestDay ?? ''}
+                    onChange={(e) => setDraft((d) => ({ ...d, fixedRestDay: e.target.value === '' ? null : Number(e.target.value) }))}
+                  >
+                    <option value="">بدون</option>
+                    {AR_DAYS.map((dn, di) => <option key={di} value={di}>{dn}</option>)}
+                  </select>
                 </div>
                 <div className="field" style={{ marginBottom: 12 }}>
                   <label>مستوى الأداء</label>
@@ -143,12 +156,13 @@ export default function Profiles() {
                 <input type="checkbox" checked={selected.has(emp.id)} onChange={() => toggleSelect(emp.id)} />
               </label>
               <h3>{emp.name}</h3>
-              <div className="role">{emp.jobRole || 'بدون دور محدد'}</div>
+              <div className="role">{emp.jobRole || 'بدون دور محدد'}{emp.groupName ? ` • ${emp.groupName}` : ''}</div>
               <div className="level">{'★'.repeat(emp.level || 3)}{'☆'.repeat(5 - (emp.level || 3))}</div>
-              {(emp.personalPhone || emp.workNumber) && (
+              {(emp.personalPhone || emp.workNumber || emp.fixedRestDay != null) && (
                 <div className="muted" style={{ marginBottom: 8, lineHeight: 1.9 }}>
                   {emp.personalPhone && <>📱 شخصي: {emp.personalPhone}<br /></>}
-                  {emp.workNumber && <>☎️ شغل: {emp.workNumber}</>}
+                  {emp.workNumber && <>☎️ شغل: {emp.workNumber}<br /></>}
+                  {emp.fixedRestDay != null && <>🗓️ إجازته الثابتة: {AR_DAYS[emp.fixedRestDay]}</>}
                 </div>
               )}
               {rows.length === 0 ? (

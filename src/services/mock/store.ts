@@ -1,5 +1,5 @@
 import type { Employee, ShiftType, Month, Settings, ChangeRequest, AuditLogEntry } from '../../types/domain'
-import { SEED_SHIFT_TYPES, SEED_SETTINGS, SEED_FEB_2026, seedEmployees } from './seed'
+import { SEED_SHIFT_TYPES, SEED_SETTINGS, SEED_FEB_2026, SEED_JOB_ROLES, seedEmployees } from './seed'
 
 export interface ShiftAssignmentRow {
   id: string
@@ -12,6 +12,7 @@ export interface ShiftAssignmentRow {
 export interface MockDB {
   employees: Employee[]
   shiftTypes: ShiftType[]
+  jobRoles: string[]
   months: Month[]
   assignments: ShiftAssignmentRow[]
   settings: Settings
@@ -37,6 +38,7 @@ function buildInitialState(): MockDB {
   return {
     employees,
     shiftTypes: SEED_SHIFT_TYPES.map((s) => ({ ...s })),
+    jobRoles: [...SEED_JOB_ROLES],
     months,
     assignments,
     settings: { ...SEED_SETTINGS },
@@ -48,7 +50,11 @@ function buildInitialState(): MockDB {
 function load(): MockDB {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as MockDB
+    if (raw) {
+      const parsed = JSON.parse(raw) as MockDB
+      if (!parsed.jobRoles) parsed.jobRoles = [...SEED_JOB_ROLES]
+      return parsed
+    }
   } catch {
     /* ignore corrupt storage, fall through to fresh seed */
   }

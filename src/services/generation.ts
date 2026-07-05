@@ -100,7 +100,9 @@ export function buildGenConfig(
       fixed: false,
       fixedCode: workCodes[0] || 'F',
       codes: emp.allowedShiftCodes && emp.allowedShiftCodes.length ? [...emp.allowedShiftCodes] : [...workCodes],
-      restDay: mostCommonOffWeekday(prevShifts, prevYear, prevMonth, settings.allowedRestDays),
+      // A profile-level fixed rest day (set in "الفريق والملفات") takes priority over guessing
+      // it from last month's OFF pattern — that's the whole point of storing it on the employee.
+      restDay: emp.fixedRestDay ?? mostCommonOffWeekday(prevShifts, prevYear, prevMonth, settings.allowedRestDays),
       lastShift: lastActiveShift(prevShifts, prevYear, prevMonth),
     }
   })

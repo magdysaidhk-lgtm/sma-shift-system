@@ -8,6 +8,7 @@ function rowToEmployee(row: any): Employee {
     id: row.id,
     name: row.name,
     jobRole: row.job_role,
+    groupName: row.group_name,
     status: row.status,
     nationalId: row.national_id,
     workNumber: row.work_number,
@@ -54,6 +55,7 @@ export async function createEmployee(
       id: crypto.randomUUID(),
       name: partial.name,
       jobRole: partial.jobRole ?? null,
+      groupName: null,
       status: 'active',
       nationalId: null,
       workNumber: null,
@@ -92,11 +94,13 @@ export async function updateEmployee(id: string, patch: Partial<Employee>, actor
       .update({
         name: patch.name,
         job_role: patch.jobRole,
+        group_name: patch.groupName,
         personal_phone: patch.personalPhone,
         work_number: patch.workNumber,
         national_id: patch.nationalId,
         level: patch.level,
         status: patch.status,
+        fixed_rest_day: patch.fixedRestDay,
         admin_notes: patch.adminNotes,
       })
       .eq('id', id)

@@ -18,6 +18,8 @@ export const SEED_SETTINGS: Settings = {
   peakEndH: 5,
 }
 
+export const SEED_JOB_ROLES: string[] = ['م . شيفت', 'اشراف', 'تدريب']
+
 interface SeedEmployee {
   name: string
   role: string
@@ -51,6 +53,7 @@ export function seedEmployees(): Employee[] {
     id: crypto.randomUUID(),
     name: e.name.trim(),
     jobRole: e.role || null,
+    groupName: null,
     status: 'active',
     nationalId: null,
     workNumber: null,

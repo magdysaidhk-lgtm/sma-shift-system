@@ -3,6 +3,7 @@ import { useAppData } from '../context/AppDataContext'
 import { useAuth } from '../auth/AuthContext'
 import { useDialog } from '../context/DialogContext'
 import { upsertShiftType, deleteShiftType } from '../services/shiftTypes'
+import { addJobRole, deleteJobRole } from '../services/jobRoles'
 import { updateSettings } from '../services/settingsService'
 import { exportBackup, downloadBackup, importBackup, type BackupPayload } from '../services/backup'
 import { AR_DAYS, pad2 } from '../utils/dates'
@@ -14,10 +15,11 @@ function timeVal(h: number | null) {
 
 export default function Rules() {
   const { user } = useAuth()
-  const { shiftTypes, settings, reloadShiftTypes, reloadSettings, reloadEmployees, reloadMonths } = useAppData()
+  const { shiftTypes, jobRoles, settings, reloadShiftTypes, reloadJobRoles, reloadSettings, reloadEmployees, reloadMonths } = useAppData()
   const { alert, confirm } = useDialog()
   const isAdmin = user?.role === 'admin'
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [newRoleName, setNewRoleName] = useState('')
 
   const [newCode, setNewCode] = useState('')
   const [newFrom, setNewFrom] = useState('')
@@ -106,6 +108,22 @@ export default function Rules() {
     await alert('تم حفظ نافذة وقت الضغط.')
   }
 
+  async function handleAddRole() {
+    const name = newRoleName.trim()
+    if (!name) return alert('لازم تكتب اسم الدور')
+    if (jobRoles.includes(name)) return alert('الدور ده موجود بالفعل')
+    await addJobRole(name)
+    await reloadJobRoles()
+    setNewRoleName('')
+  }
+
+  async function handleDeleteRole(name: string) {
+    const ok = await confirm(`تأكيد حذف الدور "${name}"؟ الموظفين المسجّلين بالدور ده هيفضلوا زي ما هم بس من غير دور محدد في القائمة.`)
+    if (!ok) return
+    await deleteJobRole(name)
+    await reloadJobRoles()
+  }
+
   return (
     <section>
       <div className="panel">
@@ -150,6 +168,27 @@ export default function Rules() {
             <div className="field"><label>الوصف</label><input type="text" style={{ width: 170 }} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} /></div>
             <div className="field"><label>اللون</label><input type="color" value={newColor} onChange={(e) => setNewColor(e.target.value)} /></div>
             <button className="btn secondary" onClick={handleAdd}>إضافة شيفت</button>
+          </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><span className="bar"></span>الأدوار الوظيفية</div>
+        <div className="muted">قائمة الأدوار المتاحة عند إضافة/تعديل موظف في "الفريق والملفات".{!isAdmin && ' (للقراءة فقط)'}</div>
+        <div className="row" style={{ marginTop: 12 }}>
+          {jobRoles.map((r) => (
+            <span className="chip" key={r} style={{ background: 'var(--panel-alt)', color: 'var(--ink)' }}>
+              {r}
+              {isAdmin && (
+                <button className="btn danger" style={{ padding: '2px 8px', fontSize: 11 }} onClick={() => handleDeleteRole(r)}>✕</button>
+              )}
+            </span>
+          ))}
+        </div>
+        {isAdmin && (
+          <div className="row" style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+            <div className="field"><label>دور جديد</label><input type="text" style={{ width: 170 }} value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} /></div>
+            <button className="btn secondary" onClick={handleAddRole}>إضافة دور</button>
           </div>
         )}
       </div>
