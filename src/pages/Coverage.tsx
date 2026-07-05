@@ -11,6 +11,9 @@ export default function Coverage() {
   const isRealTodayMonth = year === ty && month === tm
 
   const [day, setDay] = useState(isRealTodayMonth ? new Date().getDate() : 1)
+  const [employeeId, setEmployeeId] = useState('')
+  const [hourFrom, setHourFrom] = useState(0)
+  const [hourTo, setHourTo] = useState(23)
   useEffect(() => {
     setDay(isRealTodayMonth ? new Date().getDate() : 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -18,7 +21,7 @@ export default function Coverage() {
 
   const shiftByCode = new Map(shiftTypes.map((s) => [s.code, s]))
   const hourCounts = new Array(24).fill(0)
-  const rows = employees.map((emp) => {
+  const allRows = employees.map((emp) => {
     const code = roster[emp.id]?.[day]
     const s = code ? shiftByCode.get(code) : undefined
     const covers = new Array(24).fill(false)
@@ -32,6 +35,12 @@ export default function Coverage() {
     }
     return { emp, code, s, covers }
   })
+  const rows = employeeId ? allRows.filter((r) => r.emp.id === employeeId) : allRows
+
+  const from = Math.max(0, Math.min(hourFrom, hourTo))
+  const to = Math.min(23, Math.max(hourFrom, hourTo))
+  const visibleHours: number[] = []
+  for (let h = from; h <= to; h++) visibleHours.push(h)
 
   const peakHours: number[] = []
   for (let h = 0; h < 24; h++) if (hourInRange(h, settings.peakStartH, settings.peakEndH)) peakHours.push(h)
@@ -40,8 +49,8 @@ export default function Coverage() {
   return (
     <section>
       <div className="panel">
-        <div className="panel-title"><span className="bar"></span>مين موجود في كل ساعة (24 ساعة تغطية)</div>
-        <div className="muted">المنطقة المظلّلة هي وقت الضغط الأكبر — راجعها كويس عند التوزيع</div>
+        <div className="panel-title"><span className="bar"></span>مين موجود في كل ساعة (تغطية بالساعة)</div>
+        <div className="muted">المنطقة المظلّلة هي وقت الضغط الأكبر — راجعها كويس عند التوزيع. الفلاتر تحت كلها اختيارية وتقدر تجمّع بينها بحرية.</div>
         <div className="row" style={{ marginTop: 10 }}>
           <div className="field">
             <label>اليوم</label>
@@ -49,6 +58,30 @@ export default function Coverage() {
           </div>
           {isRealTodayMonth && (
             <button className="btn ghost" onClick={() => setDay(new Date().getDate())}>اليوم</button>
+          )}
+          <div className="field">
+            <label>الموظف</label>
+            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} style={{ minWidth: 160 }}>
+              <option value="">الكل</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>من الساعة</label>
+            <select value={hourFrom} onChange={(e) => setHourFrom(Number(e.target.value))}>
+              {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>إلى الساعة</label>
+            <select value={hourTo} onChange={(e) => setHourTo(Number(e.target.value))}>
+              {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+            </select>
+          </div>
+          {(employeeId || from !== 0 || to !== 23) && (
+            <button className="btn ghost" onClick={() => { setEmployeeId(''); setHourFrom(0); setHourTo(23) }}>
+              إلغاء كل الفلاتر
+            </button>
           )}
         </div>
       </div>
@@ -59,7 +92,7 @@ export default function Coverage() {
               <tr>
                 <th className="name-col">الاسم</th>
                 <th className="role-col">الشيفت</th>
-                {Array.from({ length: 24 }, (_, h) => (
+                {visibleHours.map((h) => (
                   <th key={h} className={hourInRange(h, settings.peakStartH, settings.peakEndH) ? 'peak' : ''}>
                     {hourLabel(h)}
                   </th>
@@ -67,46 +100,53 @@ export default function Coverage() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="name-col" style={{ fontWeight: 800 }}>عدد المتواجدين</td>
-                <td className="role-col"></td>
-                {hourCounts.map((count, h) => (
-                  <td
-                    key={h}
-                    className={hourInRange(h, settings.peakStartH, settings.peakEndH) ? 'peak-col' : ''}
-                    style={{ fontWeight: 800, color: count === 0 ? '#d6455a' : undefined }}
-                  >
-                    {count}
-                  </td>
-                ))}
-              </tr>
+              {!employeeId && (
+                <tr>
+                  <td className="name-col" style={{ fontWeight: 800 }}>عدد المتواجدين</td>
+                  <td className="role-col"></td>
+                  {visibleHours.map((h) => (
+                    <td
+                      key={h}
+                      className={hourInRange(h, settings.peakStartH, settings.peakEndH) ? 'peak-col' : ''}
+                      style={{ fontWeight: 800, color: hourCounts[h] === 0 ? '#d6455a' : undefined }}
+                    >
+                      {hourCounts[h]}
+                    </td>
+                  ))}
+                </tr>
+              )}
               {rows.map((r) => (
                 <tr key={r.emp.id}>
                   <td className="name-col">{r.emp.name}</td>
                   <td className="role-col">
                     {r.code ? <span style={{ color: r.s ? (r.s.color === '#FFE599' ? '#8a6d00' : r.s.color) : '#999' }}>{r.code}</span> : '—'}
                   </td>
-                  {r.covers.map((on, h) => (
-                    <td
-                      key={h}
-                      className={`shift-cell ${on ? '' : 'empty'} ${!on && hourInRange(h, settings.peakStartH, settings.peakEndH) ? 'peak-col' : ''}`}
-                      style={on && r.s ? { background: r.s.color, color: r.s.textColor } : undefined}
-                    >
-                      {on ? '' : '–'}
-                    </td>
-                  ))}
+                  {visibleHours.map((h) => {
+                    const on = r.covers[h]
+                    return (
+                      <td
+                        key={h}
+                        className={`shift-cell ${on ? '' : 'empty'} ${!on && hourInRange(h, settings.peakStartH, settings.peakEndH) ? 'peak-col' : ''}`}
+                        style={on && r.s ? { background: r.s.color, color: r.s.textColor } : undefined}
+                      >
+                        {on ? '' : '–'}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="hint" style={{ marginTop: 10 }}>
-          {minPeakCoverage === 0
-            ? `⚠️ فيه ساعة أو أكتر في وقت الضغط من غير أي تغطية خالص ليوم ${day}.`
-            : minPeakCoverage === 1
-              ? `⚠️ أقل تغطية في وقت الضغط هي شخص واحد بس ليوم ${day} — ممكن تحتاج تدعيم.`
-              : `✅ وقت الضغط مغطّى بـ ${minPeakCoverage} شخص على الأقل طول الوقت ده ليوم ${day}.`}
-        </div>
+        {!employeeId && (
+          <div className="hint" style={{ marginTop: 10 }}>
+            {minPeakCoverage === 0
+              ? `⚠️ فيه ساعة أو أكتر في وقت الضغط من غير أي تغطية خالص ليوم ${day}.`
+              : minPeakCoverage === 1
+                ? `⚠️ أقل تغطية في وقت الضغط هي شخص واحد بس ليوم ${day} — ممكن تحتاج تدعيم.`
+                : `✅ وقت الضغط مغطّى بـ ${minPeakCoverage} شخص على الأقل طول الوقت ده ليوم ${day}.`}
+          </div>
+        )}
       </div>
     </section>
   )
