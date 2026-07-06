@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useAppData } from '../context/AppDataContext'
 import { useDialog } from '../context/DialogContext'
 import { listAccounts, inviteAccount, updateAccountRole, removeAccount } from '../services/accounts'
+import { isPlainUsername, toAuthEmail } from '../auth/usernameAuth'
 import type { Role, UserProfile } from '../types/domain'
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -47,23 +48,34 @@ export default function Accounts() {
     )
   }
 
+  const isUsernameOnly = isPlainUsername(email.trim())
+  const willUsePassword = usePassword || isUsernameOnly
+
   async function handleInvite() {
     if (!email.trim() || !displayName.trim()) {
-      await alert('لازم تكتب البريد الإلكتروني والاسم.')
+      await alert('لازم تكتب البريد الإلكتروني أو اسم المستخدم، والاسم.')
+      return
+    }
+    if (willUsePassword && !password.trim()) {
+      await alert('لازم تحدد كلمة مرور.')
       return
     }
     setBusy(true)
     try {
       await inviteAccount({
-        email: email.trim(),
+        email: toAuthEmail(email),
         displayName: displayName.trim(),
         role,
         employeeId: employeeId || null,
-        password: usePassword ? password : undefined,
+        password: willUsePassword ? password : undefined,
       })
       await reload()
       setEmail(''); setDisplayName(''); setRole('view_only'); setEmployeeId(''); setPassword(''); setUsePassword(false)
-      await alert(usePassword ? 'تم إنشاء الحساب بنجاح.' : 'تم إرسال دعوة بالبريد الإلكتروني بنجاح.')
+      await alert(
+        willUsePassword
+          ? `تم إنشاء الحساب. ابعت للشخص: ${isUsernameOnly ? `اسم المستخدم "${email.trim()}"` : `الإيميل "${email.trim()}"`} + كلمة المرور اللي حددتها.`
+          : 'تم إرسال دعوة بالبريد الإلكتروني بنجاح.',
+      )
     } catch (e) {
       await alert(`تعذّر إضافة الحساب: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -93,7 +105,10 @@ export default function Accounts() {
           </div>
         )}
         <div className="row">
-          <div className="field"><label>البريد الإلكتروني</label><input type="text" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div className="field">
+            <label>البريد الإلكتروني (أو اسم مستخدم لو مفيش إيميل حقيقي)</label>
+            <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} style={{ minWidth: 220 }} />
+          </div>
           <div className="field"><label>الاسم</label><input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} /></div>
           <div className="field">
             <label>الدور</label>
@@ -109,13 +124,19 @@ export default function Accounts() {
             </select>
           </div>
         </div>
-        <label className="row" style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)', gap: 6 }}>
-          <input type="checkbox" checked={usePassword} onChange={(e) => setUsePassword(e.target.checked)} />
-          إنشاء بكلمة مرور مباشرة بدل إرسال دعوة بالبريد (لو الإيميل مش شغال)
-        </label>
-        {usePassword && (
+        {isUsernameOnly ? (
+          <div className="note" style={{ marginTop: 10 }}>
+            كتبت اسم مستخدم (من غير @) — هيتعمل حساب بكلمة مرور مباشرة بدون إيميل حقيقي. ابعت اسم المستخدم وكلمة المرور للشخص يدويًا.
+          </div>
+        ) : (
+          <label className="row" style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)', gap: 6 }}>
+            <input type="checkbox" checked={usePassword} onChange={(e) => setUsePassword(e.target.checked)} />
+            إنشاء بكلمة مرور مباشرة بدل إرسال دعوة بالبريد (لو الإيميل مش شغال)
+          </label>
+        )}
+        {willUsePassword && (
           <div className="field" style={{ marginTop: 8 }}>
-            <label>كلمة المرور المؤقتة</label>
+            <label>كلمة المرور</label>
             <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: 200 }} />
           </div>
         )}

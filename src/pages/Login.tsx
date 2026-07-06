@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
+import { toAuthEmail } from '../auth/usernameAuth'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -12,7 +13,7 @@ export default function Login() {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const msg = await signIn(email, password)
+    const msg = await signIn(toAuthEmail(email), password)
     setBusy(false)
     if (msg) setError(msg)
   }
@@ -25,7 +26,7 @@ export default function Login() {
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
           <div className="field">
-            <label>البريد الإلكتروني</label>
+            <label>البريد الإلكتروني أو اسم المستخدم</label>
             <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="field">

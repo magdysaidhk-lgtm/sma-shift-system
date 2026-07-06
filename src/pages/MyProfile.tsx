@@ -4,6 +4,7 @@ import { useAppData } from '../context/AppDataContext'
 import { useDialog } from '../context/DialogContext'
 import { updateEmployee } from '../services/employees'
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient'
+import { toAuthEmail, fromAuthEmail, isPlainUsername } from '../auth/usernameAuth'
 
 export default function MyProfile() {
   const { user } = useAuth()
@@ -22,7 +23,7 @@ export default function MyProfile() {
       setNationalId(emp.nationalId ?? '')
     }
     if (isSupabaseConfigured) {
-      supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ''))
+      supabase.auth.getUser().then(({ data }) => setEmail(fromAuthEmail(data.user?.email ?? '')))
     }
   }, [emp])
 
@@ -45,13 +46,18 @@ export default function MyProfile() {
       await reloadEmployees()
       if (isSupabaseConfigured && email.trim()) {
         const { data } = await supabase.auth.getUser()
-        if (data.user?.email !== email.trim()) {
-          const { error } = await supabase.auth.updateUser({ email: email.trim() })
+        const newAuthEmail = toAuthEmail(email)
+        if (data.user?.email !== newAuthEmail) {
+          const { error } = await supabase.auth.updateUser({ email: newAuthEmail })
           if (error) {
-            await alert(`تم حفظ الاسم والرقم الشخصي، لكن تغيير الإيميل فشل: ${error.message}`)
+            await alert(`تم حفظ الاسم والرقم الشخصي، لكن تغيير البريد/اسم المستخدم فشل: ${error.message}`)
             return
           }
-          await alert('تم الحفظ. هيوصلك رابط تأكيد على الإيميل الجديد — لازم تأكده الأول قبل ما يتفعّل.')
+          await alert(
+            isPlainUsername(email.trim())
+              ? 'تم الحفظ. لأنك بدون إيميل حقيقي، التغيير محتاج تأكيد يدوي من الـ Admin — كلّمه.'
+              : 'تم الحفظ. هيوصلك رابط تأكيد على الإيميل الجديد — لازم تأكده الأول قبل ما يتفعّل.',
+          )
           return
         }
       }
