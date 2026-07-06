@@ -53,17 +53,20 @@ export default function Coverage() {
       <div className="panel">
         <div className="panel-title"><span className="bar"></span>مين موجود في كل ساعة (تغطية بالساعة)</div>
         <div className="muted">المنطقة المظلّلة هي وقت الضغط الأكبر — راجعها كويس عند التوزيع. الفلاتر تحت كلها اختيارية وتقدر تجمّع بينها بحرية.</div>
-        <div className="row" style={{ marginTop: 10 }}>
-          <div className="field">
-            <label>اليوم</label>
-            <input type="number" min={1} max={nd} value={day} onChange={(e) => setDay(Number(e.target.value))} />
+        <div className="toolbar-block">
+          <span className="label">اليوم</span>
+          <div className="row">
+            <input type="number" min={1} max={nd} value={day} onChange={(e) => setDay(Number(e.target.value))} style={{ width: 90 }} />
+            {isRealTodayMonth && (
+              <button className="btn ghost" onClick={() => setDay(new Date().getDate())}>اليوم الحالي</button>
+            )}
           </div>
-          {isRealTodayMonth && (
-            <button className="btn ghost" onClick={() => setDay(new Date().getDate())}>اليوم</button>
-          )}
+        </div>
+
+        <div className="filters-grid">
           <div className="field">
             <label>بحث بالاسم</label>
-            <NameSearchInput id="coverage-employee-names" employees={employees} value={nameSearch} onChange={setNameSearch} style={{ minWidth: 160 }} />
+            <NameSearchInput id="coverage-employee-names" employees={employees} value={nameSearch} onChange={setNameSearch} />
           </div>
           <div className="field">
             <label>من الساعة</label>
@@ -78,9 +81,11 @@ export default function Coverage() {
             </select>
           </div>
           {(nameSearch || from !== 0 || to !== 23) && (
-            <button className="btn ghost" onClick={() => { setNameSearch(''); setHourFrom(0); setHourTo(23) }}>
-              إلغاء كل الفلاتر
-            </button>
+            <div className="field" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn ghost" onClick={() => { setNameSearch(''); setHourFrom(0); setHourTo(23) }}>
+                إلغاء كل الفلاتر
+              </button>
+            </div>
           )}
         </div>
       </div>

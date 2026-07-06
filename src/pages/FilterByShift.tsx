@@ -56,40 +56,46 @@ export default function FilterByShift() {
             <span className="bar"></span>فلترة بشيفت — {currentMonth ? monthLabel(currentMonth.year, currentMonth.month) : ''}
           </div>
         </div>
-        <div className="row" style={{ marginTop: 8 }}>
+        <div className="toolbar-block">
+          <span className="label">المدة</span>
+          <div className="row" style={{ justifyContent: 'space-between' }}>
+            <div className="seg">
+              {(['month', 'week', 'custom'] as Preset[]).map((p) => (
+                <button key={p} className={preset === p ? 'active' : ''} onClick={() => setPreset(p)}>
+                  {{ month: 'الشهر كامل', week: 'الأسبوع الحالي', custom: 'مدة مخصصة' }[p]}
+                </button>
+              ))}
+            </div>
+            {matches.length > 0 && (
+              <button className="btn ghost no-print" onClick={() => window.print()}>🖨️ طباعة / PDF</button>
+            )}
+          </div>
+          {preset === 'custom' && (
+            <div className="row" style={{ marginTop: 10 }}>
+              <div className="field">
+                <label>من يوم</label>
+                <input type="number" min={1} max={nd} value={customFrom} onChange={(e) => setCustomFrom(Number(e.target.value))} />
+              </div>
+              <div className="field">
+                <label>إلى يوم</label>
+                <input type="number" min={1} max={nd} value={customTo} onChange={(e) => setCustomTo(Number(e.target.value))} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="filters-grid">
           <div className="field">
             <label>اختر الشيفت</label>
             <select value={activeCode} onChange={(e) => setCode(e.target.value)}>
               {shiftTypes.map((st) => <option key={st.code} value={st.code}>{st.code} — {st.description}</option>)}
             </select>
           </div>
-          <div className="seg">
-            {(['month', 'week', 'custom'] as Preset[]).map((p) => (
-              <button key={p} className={preset === p ? 'active' : ''} onClick={() => setPreset(p)}>
-                {{ month: 'الشهر كامل', week: 'الأسبوع الحالي', custom: 'مدة مخصصة' }[p]}
-              </button>
-            ))}
-          </div>
           <div className="field">
             <label>تضييق بالاسم</label>
-            <NameSearchInput id="filter-employee-names" employees={employees} value={nameSearch} onChange={setNameSearch} style={{ minWidth: 150 }} />
+            <NameSearchInput id="filter-employee-names" employees={employees} value={nameSearch} onChange={setNameSearch} />
           </div>
-          {matches.length > 0 && (
-            <button className="btn ghost no-print" onClick={() => window.print()}>🖨️ طباعة / PDF</button>
-          )}
         </div>
-        {preset === 'custom' && (
-          <div className="row" style={{ marginTop: 10 }}>
-            <div className="field">
-              <label>من يوم</label>
-              <input type="number" min={1} max={nd} value={customFrom} onChange={(e) => setCustomFrom(Number(e.target.value))} />
-            </div>
-            <div className="field">
-              <label>إلى يوم</label>
-              <input type="number" min={1} max={nd} value={customTo} onChange={(e) => setCustomTo(Number(e.target.value))} />
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="panel">

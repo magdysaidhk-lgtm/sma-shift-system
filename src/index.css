@@ -50,8 +50,10 @@ header.app select option{color:#111;}
 .icon-btn{
   width:34px; height:34px; border-radius:9px; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.10);
   color:#fff; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+  text-decoration:none; transition:.15s;
 }
 .icon-btn:hover{background:rgba(255,255,255,.2);}
+.icon-btn.logout-btn{width:auto; gap:6px; padding:0 12px; font-size:12.5px; font-weight:700;}
 
 nav.tabs{
   display:flex; gap:2px; padding:0 24px; background:var(--panel);
@@ -167,6 +169,12 @@ table.grid.week-mode td.shift-cell .time-sub{display:block; font-weight:400; fon
 .toolbar-block{border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:14px; background:var(--panel-alt); box-shadow:inset 0 1px 0 rgba(255,255,255,.6);}
 .toolbar-block .label{font-size:12px; font-weight:800; color:var(--ink); margin-bottom:10px; display:block;}
 .hint{font-size:11px; color:var(--muted); margin-top:4px;}
+
+.filters-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px;
+  margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);
+}
+.filters-grid .field select, .filters-grid .field input{width:100%;}
 
 .modal-backdrop{position:fixed; inset:0; background:rgba(10,20,30,.55); display:none; align-items:center; justify-content:center; z-index:200; padding:16px;}
 .modal-backdrop.show{display:flex;}
