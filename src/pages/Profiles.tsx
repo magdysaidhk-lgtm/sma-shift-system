@@ -4,10 +4,24 @@ import { useAuth } from '../auth/AuthContext'
 import { useDialog } from '../context/DialogContext'
 import { createEmployee, updateEmployee, softDeleteEmployee } from '../services/employees'
 import { exportEmployeesToExcel, parseEmployeesExcel } from '../services/employeesExcel'
+import { inviteAccount } from '../services/accounts'
+import { toAuthEmail } from '../auth/usernameAuth'
 import { summarizeShifts } from '../utils/exportView'
 import ExportPortal from '../components/ExportPortal'
 import { daysInMonth, monthLabel, AR_DAYS, weekdayOf } from '../utils/dates'
-import type { Employee } from '../types/domain'
+import type { Employee, Role } from '../types/domain'
+
+const ACCOUNT_ROLE_LABELS: Record<string, Role> = {
+  'admin': 'admin', 'ادمن': 'admin', 'أدمن': 'admin', 'مدير عام': 'admin',
+  'مدير شيفت': 'shift_manager', 'shift_manager': 'shift_manager',
+  'مشرف': 'supervisor', 'supervisor': 'supervisor',
+  'عرض فقط': 'view_only', 'view_only': 'view_only',
+}
+
+function parseAccountRole(label: string | null): Role {
+  if (!label) return 'supervisor'
+  return ACCOUNT_ROLE_LABELS[label.trim().toLowerCase()] ?? ACCOUNT_ROLE_LABELS[label.trim()] ?? 'supervisor'
+}
 
 function countShifts(shifts: Record<number, string> | undefined) {
   const counts: Record<string, number> = {}
@@ -106,15 +120,22 @@ export default function Profiles() {
     const byName = new Map(employees.map((e) => [e.name.trim(), e]))
     let updateCount = 0
     let createCount = 0
+    let accountCount = 0
     rows.forEach((row) => {
       const match = (row.workNumber && byWorkNumber.get(row.workNumber)) || byName.get(row.name.trim())
       if (match) updateCount++
       else createCount++
+      if (row.accountLogin && row.accountPassword) accountCount++
     })
 
-    const ok = await confirm(`هيتم تحديث ${updateCount} موظف وإضافة ${createCount} موظف جديد. تأكيد المتابعة؟`)
+    const ok = await confirm(
+      `هيتم تحديث ${updateCount} موظف وإضافة ${createCount} موظف جديد` +
+      (accountCount > 0 ? `، + إنشاء ${accountCount} حساب دخول جديد` : '') +
+      `. تأكيد المتابعة؟`,
+    )
     if (!ok) return
 
+    const accountErrors: string[] = []
     for (const row of rows) {
       const match = (row.workNumber && byWorkNumber.get(row.workNumber)) || byName.get(row.name.trim())
       const patch: Partial<Employee> & { name: string } = {
@@ -126,11 +147,35 @@ export default function Profiles() {
         groupName: row.groupName,
         fixedRestDay: row.fixedRestDay,
       }
-      if (match) await updateEmployee(match.id, patch, user)
-      else await createEmployee(patch, user)
+      let employeeId: string
+      if (match) {
+        await updateEmployee(match.id, patch, user)
+        employeeId = match.id
+      } else {
+        const created = await createEmployee(patch, user)
+        employeeId = created.id
+      }
+
+      if (row.accountLogin && row.accountPassword) {
+        try {
+          await inviteAccount({
+            email: toAuthEmail(row.accountLogin),
+            displayName: row.name,
+            role: parseAccountRole(row.accountRoleLabel),
+            employeeId,
+            password: row.accountPassword,
+          })
+        } catch (e) {
+          accountErrors.push(`${row.name}: ${e instanceof Error ? e.message : String(e)}`)
+        }
+      }
     }
     await reloadEmployees()
-    await alert('تم استيراد بيانات الموظفين بنجاح.')
+    await alert(
+      accountErrors.length > 0
+        ? `تم استيراد بيانات الموظفين. لكن فيه ${accountErrors.length} حساب فشل إنشاؤه:\n${accountErrors.join('\n')}`
+        : 'تم استيراد بيانات الموظفين والحسابات بنجاح.',
+    )
   }
 
   function applyExportPreset(preset: string) {

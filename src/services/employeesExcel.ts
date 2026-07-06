@@ -1,7 +1,10 @@
 import type { Employee } from '../types/domain'
 import { AR_DAYS } from '../utils/dates'
 
-const HEADERS = ['الاسم', 'الدور', 'المستوى', 'الرقم الشخصي', 'رقم الشغل', 'اسم الجروب / الواتساب', 'يوم الإجازة الثابت']
+const HEADERS = [
+  'الاسم', 'الدور', 'المستوى (رقم من 1 إلى 5)', 'الرقم الشخصي', 'رقم الشغل', 'اسم الجروب / الواتساب', 'يوم الإجازة الثابت',
+  'اسم مستخدم أو إيميل للدخول (اختياري)', 'كلمة المرور (اختياري — لو فاضي مش هيتعمل حساب)', 'دور الحساب في النظام (Admin / مدير شيفت / مشرف / عرض فقط — افتراضي: مشرف)',
+]
 
 export async function exportEmployeesToExcel(employees: Employee[]): Promise<void> {
   const writeXlsxFile = (await import('write-excel-file/browser')).default
@@ -15,6 +18,9 @@ export async function exportEmployeesToExcel(employees: Employee[]): Promise<voi
       { value: e.workNumber ?? '' },
       { value: e.groupName ?? '' },
       { value: e.fixedRestDay != null ? AR_DAYS[e.fixedRestDay] : '' },
+      { value: '' },
+      { value: '' },
+      { value: '' },
     ]),
   ]
   await writeXlsxFile(rows).toFile('قالب-الموظفين.xlsx')
@@ -28,6 +34,9 @@ export interface ParsedEmployeeRow {
   workNumber: string | null
   groupName: string | null
   fixedRestDay: number | null
+  accountLogin: string | null
+  accountPassword: string | null
+  accountRoleLabel: string | null
 }
 
 function cellStr(value: unknown): string {
@@ -53,6 +62,9 @@ export async function parseEmployeesExcel(file: File): Promise<ParsedEmployeeRow
       workNumber: cellStr(row[4]) || null,
       groupName: cellStr(row[5]) || null,
       fixedRestDay: restDayIdx >= 0 ? restDayIdx : null,
+      accountLogin: cellStr(row[7]) || null,
+      accountPassword: cellStr(row[8]) || null,
+      accountRoleLabel: cellStr(row[9]) || null,
     })
   })
   return rows
