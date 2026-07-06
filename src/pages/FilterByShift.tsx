@@ -21,6 +21,7 @@ export default function FilterByShift() {
   const [preset, setPreset] = useState<Preset>('month')
   const [customFrom, setCustomFrom] = useState(1)
   const [customTo, setCustomTo] = useState(31)
+  const [nameSearch, setNameSearch] = useState('')
 
   const year = currentMonth?.year ?? new Date().getFullYear()
   const month = currentMonth?.month ?? new Date().getMonth() + 1
@@ -34,7 +35,9 @@ export default function FilterByShift() {
   }, [preset, year, month, nd, customFrom, customTo])
 
   const s = shiftTypes.find((st) => st.code === activeCode)
+  const nameQuery = nameSearch.trim().toLowerCase()
   const matches = employees
+    .filter((emp) => !nameQuery || emp.name.toLowerCase().includes(nameQuery))
     .map((emp) => {
       const days: number[] = []
       for (let d = from; d <= to; d++) if (roster[emp.id]?.[d] === activeCode) days.push(d)
@@ -65,6 +68,10 @@ export default function FilterByShift() {
                 {{ month: 'الشهر كامل', week: 'الأسبوع الحالي', custom: 'مدة مخصصة' }[p]}
               </button>
             ))}
+          </div>
+          <div className="field">
+            <label>تضييق بالاسم</label>
+            <input type="text" placeholder="اسم الموظف..." value={nameSearch} onChange={(e) => setNameSearch(e.target.value)} style={{ minWidth: 150 }} />
           </div>
           {matches.length > 0 && (
             <button className="btn ghost no-print" onClick={() => window.print()}>🖨️ طباعة / PDF</button>

@@ -35,6 +35,7 @@ export default function Grid() {
   const [customFrom, setCustomFrom] = useState(1)
   const [customTo, setCustomTo] = useState(31)
   const [quickFilterCode, setQuickFilterCode] = useState('')
+  const [nameSearch, setNameSearch] = useState('')
   const [sickPanelOpen, setSickPanelOpen] = useState(false)
   const [sickEmpId, setSickEmpId] = useState('')
   const [sickType, setSickType] = useState<'Y' | 'ABS'>('Y')
@@ -60,6 +61,10 @@ export default function Grid() {
   const shiftByCode = new Map(shiftTypes.map((s) => [s.code, s]))
   const isWeekMode = to - from <= 7
   const perm = editPermission(user?.role ?? 'view_only', currentMonth?.status)
+  const visibleEmployees = useMemo(() => {
+    const q = nameSearch.trim().toLowerCase()
+    return q ? employees.filter((e) => e.name.toLowerCase().includes(q)) : employees
+  }, [employees, nameSearch])
 
   const days: number[] = []
   for (let d = from; d <= to; d++) days.push(d)
@@ -116,6 +121,10 @@ export default function Grid() {
                   {{ today: 'اليوم', week: 'الأسبوع الحالي', month: 'الشهر كامل', custom: 'مدة مخصصة' }[p]}
                 </button>
               ))}
+            </div>
+            <div className="field">
+              <label>بحث بالاسم</label>
+              <input type="text" placeholder="اسم الموظف..." value={nameSearch} onChange={(e) => setNameSearch(e.target.value)} style={{ minWidth: 150 }} />
             </div>
             <div className="field">
               <label>تصفية سريعة بشيفت</label>
@@ -199,7 +208,7 @@ export default function Grid() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
+              {visibleEmployees.map((emp) => (
                 <tr key={emp.id}>
                   <td className="name-col">{emp.name}</td>
                   <td className="role-col">{emp.jobRole || ''}</td>
@@ -269,7 +278,7 @@ export default function Grid() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
+              {visibleEmployees.map((emp) => (
                 <tr key={emp.id}>
                   <td style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{emp.name}</td>
                   <td>{emp.jobRole || ''}</td>

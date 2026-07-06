@@ -11,7 +11,7 @@ export default function Coverage() {
   const isRealTodayMonth = year === ty && month === tm
 
   const [day, setDay] = useState(isRealTodayMonth ? new Date().getDate() : 1)
-  const [employeeId, setEmployeeId] = useState('')
+  const [nameSearch, setNameSearch] = useState('')
   const [hourFrom, setHourFrom] = useState(0)
   const [hourTo, setHourTo] = useState(23)
   useEffect(() => {
@@ -35,7 +35,8 @@ export default function Coverage() {
     }
     return { emp, code, s, covers }
   })
-  const rows = employeeId ? allRows.filter((r) => r.emp.id === employeeId) : allRows
+  const nameQuery = nameSearch.trim().toLowerCase()
+  const rows = nameQuery ? allRows.filter((r) => r.emp.name.toLowerCase().includes(nameQuery)) : allRows
 
   const from = Math.max(0, Math.min(hourFrom, hourTo))
   const to = Math.min(23, Math.max(hourFrom, hourTo))
@@ -60,11 +61,8 @@ export default function Coverage() {
             <button className="btn ghost" onClick={() => setDay(new Date().getDate())}>اليوم</button>
           )}
           <div className="field">
-            <label>الموظف</label>
-            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} style={{ minWidth: 160 }}>
-              <option value="">الكل</option>
-              {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
+            <label>بحث بالاسم</label>
+            <input type="text" placeholder="اسم الموظف..." value={nameSearch} onChange={(e) => setNameSearch(e.target.value)} style={{ minWidth: 160 }} />
           </div>
           <div className="field">
             <label>من الساعة</label>
@@ -78,8 +76,8 @@ export default function Coverage() {
               {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
             </select>
           </div>
-          {(employeeId || from !== 0 || to !== 23) && (
-            <button className="btn ghost" onClick={() => { setEmployeeId(''); setHourFrom(0); setHourTo(23) }}>
+          {(nameSearch || from !== 0 || to !== 23) && (
+            <button className="btn ghost" onClick={() => { setNameSearch(''); setHourFrom(0); setHourTo(23) }}>
               إلغاء كل الفلاتر
             </button>
           )}
@@ -100,7 +98,7 @@ export default function Coverage() {
               </tr>
             </thead>
             <tbody>
-              {!employeeId && (
+              {!nameQuery && (
                 <tr>
                   <td className="name-col" style={{ fontWeight: 800 }}>عدد المتواجدين</td>
                   <td className="role-col"></td>
@@ -138,7 +136,7 @@ export default function Coverage() {
             </tbody>
           </table>
         </div>
-        {!employeeId && (
+        {!nameQuery && (
           <div className="hint" style={{ marginTop: 10 }}>
             {minPeakCoverage === 0
               ? `⚠️ فيه ساعة أو أكتر في وقت الضغط من غير أي تغطية خالص ليوم ${day}.`
