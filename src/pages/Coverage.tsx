@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
+import NameSearchInput from '../components/NameSearchInput'
 import { daysInMonth, hourInRange, hourLabel, realTodayKey } from '../utils/dates'
 
 export default function Coverage() {
@@ -62,7 +63,7 @@ export default function Coverage() {
           )}
           <div className="field">
             <label>بحث بالاسم</label>
-            <input type="text" placeholder="اسم الموظف..." value={nameSearch} onChange={(e) => setNameSearch(e.target.value)} style={{ minWidth: 160 }} />
+            <NameSearchInput id="coverage-employee-names" employees={employees} value={nameSearch} onChange={setNameSearch} style={{ minWidth: 160 }} />
           </div>
           <div className="field">
             <label>من الساعة</label>

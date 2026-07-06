@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import ExportPortal from '../components/ExportPortal'
+import NameSearchInput from '../components/NameSearchInput'
 import { AR_DAYS, daysInMonth, monthLabel, weekdayOf } from '../utils/dates'
 
 type Preset = 'month' | 'week' | 'custom'
@@ -71,7 +72,7 @@ export default function FilterByShift() {
           </div>
           <div className="field">
             <label>تضييق بالاسم</label>
-            <input type="text" placeholder="اسم الموظف..." value={nameSearch} onChange={(e) => setNameSearch(e.target.value)} style={{ minWidth: 150 }} />
+            <NameSearchInput id="filter-employee-names" employees={employees} value={nameSearch} onChange={setNameSearch} style={{ minWidth: 150 }} />
           </div>
           {matches.length > 0 && (
             <button className="btn ghost no-print" onClick={() => window.print()}>🖨️ طباعة / PDF</button>

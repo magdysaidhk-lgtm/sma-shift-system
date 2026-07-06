@@ -39,7 +39,7 @@ export default function Layout() {
     <>
       <header className="app">
         <div className="brand">
-          <div className="logo">SM</div>
+          <img src="/logo.png" alt="Super Muslim Academy" className="brand-logo" />
           <div>
             <h1>نظام إدارة شيفتات سوبر مسلم أكاديمي</h1>
             <div className="sub">الرئيسية • الجدول • التغطية اليومية • الفريق • التوليد</div>

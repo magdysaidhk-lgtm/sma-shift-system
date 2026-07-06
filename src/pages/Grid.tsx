@@ -5,6 +5,7 @@ import { useDialog } from '../context/DialogContext'
 import { setAssignment } from '../services/shiftAssignments'
 import CellEditModal from '../components/CellEditModal'
 import ExportPortal from '../components/ExportPortal'
+import NameSearchInput from '../components/NameSearchInput'
 import { AR_DAYS, AR_DAYS_SHORT, daysInMonth, monthLabel, weekdayOf } from '../utils/dates'
 
 type GridPreset = 'today' | 'week' | 'month' | 'custom'
@@ -124,7 +125,7 @@ export default function Grid() {
             </div>
             <div className="field">
               <label>بحث بالاسم</label>
-              <input type="text" placeholder="اسم الموظف..." value={nameSearch} onChange={(e) => setNameSearch(e.target.value)} style={{ minWidth: 150 }} />
+              <NameSearchInput id="grid-employee-names" employees={employees} value={nameSearch} onChange={setNameSearch} style={{ minWidth: 150 }} />
             </div>
             <div className="field">
               <label>تصفية سريعة بشيفت</label>
