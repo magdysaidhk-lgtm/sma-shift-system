@@ -13,12 +13,13 @@ const GENERATE = { to: '/generate', label: 'توليد شهر جديد' }
 const RULES = { to: '/rules', label: 'القواعد' }
 const AUDIT_LOG = { to: '/audit-log', label: 'سجل التعديلات' }
 const ACCOUNTS = { to: '/accounts', label: 'الحسابات' }
+const HIERARCHY = { to: '/hierarchy', label: 'التسلسل الهرمي' }
 
 const TABS_BY_ROLE: Record<Role, { to: string; label: string }[]> = {
-  admin: [DASHBOARD, GRID, COVERAGE, PROFILES, FILTER, GENERATE, RULES, AUDIT_LOG, ACCOUNTS],
-  shift_manager: [DASHBOARD, GRID, COVERAGE],
+  admin: [DASHBOARD, GRID, COVERAGE, PROFILES, FILTER, GENERATE, RULES, AUDIT_LOG, HIERARCHY, ACCOUNTS],
+  shift_manager: [DASHBOARD, GRID, COVERAGE, HIERARCHY],
   supervisor: [GRID, COVERAGE],
-  view_only: [DASHBOARD, GRID, COVERAGE, PROFILES, FILTER, AUDIT_LOG],
+  view_only: [DASHBOARD, GRID, COVERAGE, PROFILES, FILTER, AUDIT_LOG, HIERARCHY],
 }
 
 const ROLE_LABELS: Record<Role, string> = {

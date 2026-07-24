@@ -115,13 +115,36 @@ export default function Grid() {
   const shiftByCode = new Map(shiftTypes.map((s) => [s.code, s]))
   const isWeekMode = to - from <= 7
   const perm = editPermission(user?.role ?? 'view_only', currentMonth?.status)
-  const visibleEmployees = useMemo(() => {
-    const q = nameSearch.trim().toLowerCase()
-    return q ? employees.filter((e) => e.name.toLowerCase().includes(q)) : employees
-  }, [employees, nameSearch])
 
   const days: number[] = []
   for (let d = from; d <= to; d++) days.push(d)
+
+  // Shift managers get a scoped view by default: only people who share a shift code with them,
+  // on the days they share it — "مين معايا في الشيفت ده ومن امتى لحد امتى".
+  const canScopeToOwnShift = user?.role === 'shift_manager' && Boolean(user.employeeId)
+  const [sameShiftOnly, setSameShiftOnly] = useState(true)
+  const managerCodeByDay = user?.employeeId ? roster[user.employeeId] : undefined
+  const colleagueOverlaps = useMemo(() => {
+    if (!canScopeToOwnShift || !managerCodeByDay) return null
+    const result = new Map<string, number[]>()
+    employees.forEach((emp) => {
+      if (emp.id === user!.employeeId) return
+      const matchDays = days.filter((d) => managerCodeByDay[d] && roster[emp.id]?.[d] === managerCodeByDay[d])
+      if (matchDays.length > 0) result.set(emp.id, matchDays)
+    })
+    return result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canScopeToOwnShift, managerCodeByDay, employees, roster, days.join(',')])
+
+  const visibleEmployees = useMemo(() => {
+    const q = nameSearch.trim().toLowerCase()
+    let list = q ? employees.filter((e) => e.name.toLowerCase().includes(q)) : employees
+    if (canScopeToOwnShift && sameShiftOnly && colleagueOverlaps && !isCustomRange) {
+      list = list.filter((e) => e.id === user!.employeeId || colleagueOverlaps.has(e.id))
+    }
+    return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employees, nameSearch, canScopeToOwnShift, sameShiftOnly, colleagueOverlaps, isCustomRange])
 
   async function handleSelect(code: string | null) {
     if (!modalCtx || !user) return
@@ -214,6 +237,12 @@ export default function Grid() {
               ))}
             </select>
           </div>
+          {canScopeToOwnShift && !isCustomRange && (
+            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={sameShiftOnly} onChange={(e) => setSameShiftOnly(e.target.checked)} />
+              اظهار زمايلي في نفس الشيفت بس
+            </label>
+          )}
         </div>
 
         <div className="row" style={{ marginTop: 14 }}>
@@ -258,6 +287,27 @@ export default function Grid() {
           ))}
         </div>
       </div>
+
+      {canScopeToOwnShift && sameShiftOnly && !isCustomRange && colleagueOverlaps && (
+        <div className="panel">
+          <div className="panel-title"><span className="bar"></span>زمايلك في نفس الشيفت ({colleagueOverlaps.size})</div>
+          {colleagueOverlaps.size === 0 ? (
+            <div className="muted">محدش معاك في نفس الشيفت في المدة المعروضة.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+              {[...colleagueOverlaps.entries()].map(([empId, matchDays]) => {
+                const emp = employees.find((e) => e.id === empId)
+                if (!emp) return null
+                return (
+                  <div key={empId} className="muted" style={{ fontSize: 13 }}>
+                    <b style={{ color: 'var(--ink)' }}>{emp.name}</b> — معاك من يوم {matchDays[0]} لـ يوم {matchDays[matchDays.length - 1]} ({matchDays.length} يوم)
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {isCustomRange ? (
         customBlocks.map((block) => {

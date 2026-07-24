@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
+import { useAuth } from '../auth/AuthContext'
 import NameSearchInput from '../components/NameSearchInput'
 import { daysInMonth, hourInRange, hourLabel, realTodayKey } from '../utils/dates'
 
 export default function Coverage() {
+  const { user } = useAuth()
   const { employees, shiftTypes, settings, currentMonth, roster } = useAppData()
   const year = currentMonth?.year ?? new Date().getFullYear()
   const month = currentMonth?.month ?? new Date().getMonth() + 1
@@ -15,6 +17,7 @@ export default function Coverage() {
   const [nameSearch, setNameSearch] = useState('')
   const [hourFrom, setHourFrom] = useState(0)
   const [hourTo, setHourTo] = useState(23)
+  const [sameShiftOnly, setSameShiftOnly] = useState(true)
   useEffect(() => {
     setDay(isRealTodayMonth ? new Date().getDate() : 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,7 +40,15 @@ export default function Coverage() {
     return { emp, code, s, covers }
   })
   const nameQuery = nameSearch.trim().toLowerCase()
-  const rows = nameQuery ? allRows.filter((r) => r.emp.name.toLowerCase().includes(nameQuery)) : allRows
+  const canScopeToOwnShift = user?.role === 'shift_manager' && Boolean(user.employeeId)
+  const managerRow = canScopeToOwnShift ? allRows.find((r) => r.emp.id === user!.employeeId) : undefined
+
+  let rows = nameQuery ? allRows.filter((r) => r.emp.name.toLowerCase().includes(nameQuery)) : allRows
+  const scopingActive = canScopeToOwnShift && sameShiftOnly && Boolean(managerRow)
+  if (scopingActive && managerRow) {
+    rows = rows.filter((r) => r.emp.id === user!.employeeId || r.covers.some((on, h) => on && managerRow.covers[h]))
+  }
+  const isFiltered = Boolean(nameQuery) || scopingActive
 
   const from = Math.max(0, Math.min(hourFrom, hourTo))
   const to = Math.min(23, Math.max(hourFrom, hourTo))
@@ -80,6 +91,12 @@ export default function Coverage() {
               {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
             </select>
           </div>
+          {canScopeToOwnShift && (
+            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={sameShiftOnly} onChange={(e) => setSameShiftOnly(e.target.checked)} />
+              اظهار زمايلي في نفس الوقت بس
+            </label>
+          )}
           {(nameSearch || from !== 0 || to !== 23) && (
             <div className="field" style={{ justifyContent: 'flex-end' }}>
               <button className="btn ghost" onClick={() => { setNameSearch(''); setHourFrom(0); setHourTo(23) }}>
@@ -104,7 +121,7 @@ export default function Coverage() {
               </tr>
             </thead>
             <tbody>
-              {!nameQuery && (
+              {!isFiltered && (
                 <tr>
                   <td className="name-col" style={{ fontWeight: 800 }}>عدد المتواجدين</td>
                   <td className="role-col"></td>
@@ -142,7 +159,7 @@ export default function Coverage() {
             </tbody>
           </table>
         </div>
-        {!nameQuery && (
+        {!isFiltered && (
           <div className="hint" style={{ marginTop: 10 }}>
             {minPeakCoverage === 0
               ? `⚠️ فيه ساعة أو أكتر في وقت الضغط من غير أي تغطية خالص ليوم ${day}.`

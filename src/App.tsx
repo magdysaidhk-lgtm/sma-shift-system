@@ -14,6 +14,7 @@ import Rules from './pages/Rules'
 import AuditLog from './pages/AuditLog'
 import Accounts from './pages/Accounts'
 import MyProfile from './pages/MyProfile'
+import Hierarchy from './pages/Hierarchy'
 
 function App() {
   const { loading, user } = useAuth()
@@ -36,6 +37,7 @@ function App() {
             <Route path="audit-log" element={<AuditLog />} />
             <Route path="accounts" element={<Accounts />} />
             <Route path="my-profile" element={<MyProfile />} />
+            <Route path="hierarchy" element={<Hierarchy />} />
           </Route>
         </Routes>
       </AppDataProvider>
